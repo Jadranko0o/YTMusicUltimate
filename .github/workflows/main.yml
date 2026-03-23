@@ -21,9 +21,6 @@ on:
         required: true
         type: string
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -37,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout Main
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v4
         with:
           path: main
           submodules: recursive
@@ -67,7 +64,7 @@ jobs:
 
       - name: Cache Theos
         id: theos
-        uses: actions/cache@v5.0.3
+        uses: actions/cache@v3
         env:
           cache-name: theos_cache_344ee59
         with:
@@ -77,7 +74,7 @@ jobs:
 
       - name: Setup Theos
         if: steps.theos.outputs.cache-hit != 'true'
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v4
         with:
           repository: theos/theos
           ref: 344ee5925df036dbd1312b783ad5a00d153c2445
@@ -113,15 +110,16 @@ jobs:
           cyan -i ytm.ipa -o YTMusicUltimate.ipa -uwsf ytmult.deb -n "${{ inputs.display_name }}" -b "${{ inputs.bundle_id }}"
 
       - name: Create draft release
+        working-directory: main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="build-${{ github.run_number }}"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" YTMusicUltimate.ipa --clobber
+            gh release upload "$TAG" ../YTMusicUltimate.ipa --clobber
           else
-            gh release create "$TAG" YTMusicUltimate.ipa \
+            gh release create "$TAG" ../YTMusicUltimate.ipa \
               --title "YTMusicUltimate (${{ github.run_number }})" \
               --draft \
               --notes "Automated draft release for run ${{ github.run_number }}"
