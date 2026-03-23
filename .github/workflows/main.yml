@@ -1,7 +1,8 @@
 name: Build and Release YTMusicUltimate
+
 on:
   workflow_dispatch:
-    inputs: 
+    inputs:
       ipa_url:
         description: "URL to the decrypted IPA file"
         default: ""
@@ -19,6 +20,9 @@ on:
         default: "com.google.ios.youtubemusic"
         required: true
         type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -38,17 +42,15 @@ jobs:
           path: main
           submodules: recursive
 
-      - name: Hide sensitive inputs
-        uses: levibostian/action-hide-sensitive-inputs@v1
-        with:
-          exclude_inputs: bundle_id,display_name
+      - name: Mask sensitive inputs
+        run: |
+          echo "::add-mask::${{ inputs.ipa_url }}"
 
       - name: Validate IPA URL
         run: |
           curl -L -r 0-1023 -o sample.part "${{ inputs.ipa_url }}" > /dev/null 2>&1
-          
-          file_type=$(file --mime-type -b sample.part)
 
+          file_type=$(file --mime-type -b sample.part)
           if [[ "$file_type" != "application/x-ios-app" && "$file_type" != "application/zip" ]]; then
             echo "::error::Validation failed: The file is not a valid IPA file. Detected type: $file_type."
             exit 1
@@ -103,10 +105,10 @@ jobs:
           mv packages/*.deb ../ytmult.deb
 
       - name: Inject tweak into provided IPA
-        run: cyan -i ytm.ipa -o YTMusicUltimate.ipa -uwsf ytmult.deb -n "${{ inputs.display_name }}" -b ${{ inputs.bundle_id }} 
+        run: cyan -i ytm.ipa -o YTMusicUltimate.ipa -uwsf ytmult.deb -n "${{ inputs.display_name }}" -b "${{ inputs.bundle_id }}"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@v2.6.1
         with:
           name: YTMusicUltimate (${{ github.run_number }})
           files: YTMusicUltimate.ipa
